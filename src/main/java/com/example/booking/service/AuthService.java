@@ -2,12 +2,14 @@ package com.example.booking.service;
 
 import com.example.booking.dto.LoginRequest;
 import com.example.booking.dto.LoginResponse;
+import com.example.booking.dto.RegisterRequest;
 import com.example.booking.entity.User;
 import com.example.booking.repository.UserRepository;
 import com.example.booking.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,6 +19,19 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+
+    public void register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already registered!");
+        }
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(request.getRole());
+        userRepository.save(user);
+    }
 
     public LoginResponse login(LoginRequest request) {
         authenticationManager.authenticate(
@@ -32,4 +47,4 @@ public class AuthService {
 
         return new LoginResponse(token, user.getRole().name());
     }
-}
+}

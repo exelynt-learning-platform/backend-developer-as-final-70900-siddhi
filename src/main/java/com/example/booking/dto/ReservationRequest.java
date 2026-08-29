@@ -8,16 +8,17 @@ import java.time.LocalDateTime;
 
 @Data
 public class ReservationRequest {
-    @NotNull
+
+    @NotNull(message = "Resource ID is required")
     private Long resourceId;
 
-    @NotNull
+    @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
 
-    @NotNull
+    @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
-    @NotNull
-    @Positive
+    @NotNull(message = "Price is required")
+    @Positive(message = "Price must be a positive value")
     private BigDecimal price;
 }

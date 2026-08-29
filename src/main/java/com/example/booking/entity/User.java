@@ -1,6 +1,7 @@
 package com.example.booking.entity;
 
 import com.example.booking.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,6 +19,7 @@ public class User {
 	    @Column(nullable = false, unique = true)
 	    private String email;
 	    
+	    @JsonIgnore
 	    @Column(nullable = false)
 	    private String password;
 	    
@@ -25,3 +27,4 @@ public class User {
 	    @Column(nullable = false)
 	    private Role role;
 }
+

@@ -17,34 +17,46 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
-public class SecurityConfig {  
-	private final JwtFilter jwtFilter;
+public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
     private final UserDetailsServiceImpl userDetailsService;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+
+                // Resources: GET = USER+ADMIN, write ops = ADMIN only
                 .requestMatchers(HttpMethod.GET, "/resources/**").hasAnyRole("ADMIN", "USER")
                 .requestMatchers("/resources/**").hasRole("ADMIN")
-                .requestMatchers("/reservations/**").hasAnyRole("ADMIN", "USER")
+
+                // Reservations
+                .requestMatchers(HttpMethod.POST, "/reservations").hasAnyRole("ADMIN", "USER")
+                .requestMatchers(HttpMethod.GET, "/reservations/my").hasAnyRole("ADMIN", "USER")
+                .requestMatchers(HttpMethod.GET, "/reservations").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/reservations/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/reservations/**").hasRole("ADMIN")
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-    
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 }

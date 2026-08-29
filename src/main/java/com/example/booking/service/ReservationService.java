@@ -1,9 +1,12 @@
 package com.example.booking.service;
 
 import com.example.booking.dto.ReservationRequest;
+import com.example.booking.dto.ReservationResponse;
 import com.example.booking.entity.Reservation;
+import com.example.booking.entity.Resource;
 import com.example.booking.entity.User;
 import com.example.booking.enums.ReservationStatus;
+import com.example.booking.exception.ResourceNotFoundException;
 import com.example.booking.repository.ReservationRepository;
 import com.example.booking.repository.ResourceRepository;
 import com.example.booking.repository.UserRepository;
@@ -22,49 +25,83 @@ public class ReservationService {
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
 
-    public Reservation create(ReservationRequest request, String email) {
+    public ReservationResponse create(ReservationRequest request, String email) {
+        if (request.getStartTime() == null || request.getEndTime() == null) {
+            throw new RuntimeException("Start time and end time are required");
+        }
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new RuntimeException("End time must be after start time");
+        }
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Resource resource = resourceRepository.findById(request.getResourceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Resource not found with id: " + request.getResourceId()));
 
         Reservation reservation = new Reservation();
         reservation.setUser(user);
-        reservation.setResource(resourceRepository.findById(request.getResourceId())
-                .orElseThrow(() -> new RuntimeException("Resource not found")));
+        reservation.setResource(resource);
         reservation.setStartTime(request.getStartTime());
         reservation.setEndTime(request.getEndTime());
         reservation.setPrice(request.getPrice());
         reservation.setStatus(ReservationStatus.PENDING);
 
-        return reservationRepository.save(reservation);
+        return toResponse(reservationRepository.save(reservation));
     }
 
-    public Page<Reservation> getMyReservations(String email, Pageable pageable) {
+    public Page<ReservationResponse> getMyReservations(
+            String email,
+            ReservationStatus status,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return reservationRepository.findByUserId(user.getId(), pageable);
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return reservationRepository
+                .findByUserIdWithFilters(user.getId(), status, minPrice, maxPrice, pageable)
+                .map(this::toResponse);
     }
 
-    public Page<Reservation> getAllReservations(Pageable pageable) {
-        return reservationRepository.findAll(pageable);
-    }
-
-    public Page<Reservation> filterReservations(
+    public Page<ReservationResponse> getAllReservations(
             ReservationStatus status,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Pageable pageable) {
         return reservationRepository
-                .findByStatusAndPriceBetween(status, minPrice, maxPrice, pageable);
+                .findWithFilters(status, minPrice, maxPrice, pageable)
+                .map(this::toResponse);
     }
 
-    public Reservation updateStatus(Long id, ReservationStatus status) {
+    public ReservationResponse updateStatus(Long id, ReservationStatus status) {
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Reservation not found with id: " + id));
         reservation.setStatus(status);
-        return reservationRepository.save(reservation);
+        return toResponse(reservationRepository.save(reservation));
     }
 
     public void delete(Long id) {
+        if (!reservationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Reservation not found with id: " + id);
+        }
         reservationRepository.deleteById(id);
+    }
+
+    private ReservationResponse toResponse(Reservation r) {
+        ReservationResponse dto = new ReservationResponse();
+        dto.setId(r.getId());
+        dto.setUserId(r.getUser().getId());
+        dto.setUserName(r.getUser().getName());
+        dto.setUserEmail(r.getUser().getEmail());
+        dto.setResourceId(r.getResource().getId());
+        dto.setResourceName(r.getResource().getName());
+        dto.setResourceType(r.getResource().getType());
+        dto.setStartTime(r.getStartTime());
+        dto.setEndTime(r.getEndTime());
+        dto.setPrice(r.getPrice());
+        dto.setStatus(r.getStatus());
+        return dto;
     }
 }
