@@ -155,6 +155,57 @@ class ReservationServiceTest {
                 () -> reservationService.updateStatus(99L, ReservationStatus.CANCELLED));
     }
 
+    // ─── Get By ID ─────────────────────────────────────────────────────────────
+
+    @Test
+    void getById_shouldReturnReservation_whenUserIsOwner() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(testReservation));
+
+        ReservationResponse response = reservationService.getById(1L, "user@test.com", false);
+
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        assertEquals("user@test.com", response.getUserEmail());
+    }
+
+    @Test
+    void getById_shouldThrowAccessDenied_whenUserIsNotOwnerAndNotAdmin() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(testReservation));
+
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> reservationService.getById(1L, "other@test.com", false));
+    }
+
+    @Test
+    void getById_shouldReturnReservation_whenUserIsAdmin() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(testReservation));
+
+        ReservationResponse response = reservationService.getById(1L, "admin@test.com", true);
+
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+    }
+
+    // ─── Update ────────────────────────────────────────────────────────────────
+
+    @Test
+    void update_shouldUpdateFields_whenValid() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(testReservation));
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(testResource));
+        when(reservationRepository.save(any())).thenReturn(testReservation);
+
+        ReservationRequest request = new ReservationRequest();
+        request.setResourceId(1L);
+        request.setStartTime(LocalDateTime.now().plusHours(2));
+        request.setEndTime(LocalDateTime.now().plusHours(4));
+        request.setPrice(new BigDecimal("750.00"));
+
+        ReservationResponse response = reservationService.update(1L, request);
+
+        assertNotNull(response);
+        verify(reservationRepository).save(testReservation);
+    }
+
     // ─── Delete ────────────────────────────────────────────────────────────────
 
     @Test

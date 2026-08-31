@@ -77,6 +77,32 @@ public class ReservationController {
     }
 
     /**
+     * USER / ADMIN — view reservation by ID.
+     * Admin can view any reservation; User can only view their own.
+     */
+    @GetMapping("/{id}")
+    @Operation(summary = "Get reservation by ID (USER own / ADMIN all)")
+    public ResponseEntity<ReservationResponse> getById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(
+                reservationService.getById(id, userDetails.getUsername(), isAdmin));
+    }
+
+    /**
+     * ADMIN only — update reservation details.
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "Update reservation details (ADMIN only)")
+    public ResponseEntity<ReservationResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservationRequest request) {
+        return ResponseEntity.ok(reservationService.update(id, request));
+    }
+
+    /**
      * ADMIN only — update reservation status.
      */
     @PatchMapping("/{id}/status")

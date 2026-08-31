@@ -56,4 +56,38 @@ class ResourceServiceTest {
 
         assertEquals("Room 202", result.getName());
     }
+
+    @Test
+    void update_shouldUpdateAndSaveResource() {
+        Resource existing = new Resource();
+        existing.setId(1L);
+        existing.setName("Old Name");
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(resourceRepository.save(any())).thenReturn(existing);
+
+        ResourceRequest request = new ResourceRequest();
+        request.setName("New Name");
+        request.setType("room");
+        request.setDescription("Updated room");
+
+        Resource result = resourceService.update(1L, request);
+
+        assertEquals("New Name", result.getName());
+        verify(resourceRepository).save(existing);
+    }
+
+    @Test
+    void delete_shouldDeleteResource_whenExists() {
+        when(resourceRepository.existsById(1L)).thenReturn(true);
+
+        assertDoesNotThrow(() -> resourceService.delete(1L));
+        verify(resourceRepository).deleteById(1L);
+    }
+
+    @Test
+    void delete_shouldThrowException_whenNotFound() {
+        when(resourceRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(RuntimeException.class, () -> resourceService.delete(99L));
+    }
 }

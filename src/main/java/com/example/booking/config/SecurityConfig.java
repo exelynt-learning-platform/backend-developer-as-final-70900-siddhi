@@ -39,11 +39,33 @@ public class SecurityConfig {
                 // Reservations
                 .requestMatchers(HttpMethod.POST, "/reservations").hasAnyRole("ADMIN", "USER")
                 .requestMatchers(HttpMethod.GET, "/reservations/my").hasAnyRole("ADMIN", "USER")
+                .requestMatchers(HttpMethod.GET, "/reservations/{id}").hasAnyRole("ADMIN", "USER")
                 .requestMatchers(HttpMethod.GET, "/reservations").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/reservations/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/reservations/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/reservations/**").hasRole("ADMIN")
 
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write(
+                        "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"" +
+                        (authException.getMessage() != null ? authException.getMessage() : "Full authentication is required") +
+                        "\",\"timestamp\":\"" + java.time.LocalDateTime.now() + "\"}"
+                    );
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write(
+                        "{\"status\":403,\"error\":\"Forbidden\",\"message\":\"" +
+                        (accessDeniedException.getMessage() != null ? accessDeniedException.getMessage() : "Access Denied") +
+                        "\",\"timestamp\":\"" + java.time.LocalDateTime.now() + "\"}"
+                    );
+                })
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

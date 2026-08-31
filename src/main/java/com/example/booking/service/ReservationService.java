@@ -74,6 +74,43 @@ public class ReservationService {
                 .map(this::toResponse);
     }
 
+    public ReservationResponse getById(Long id, String email, boolean isAdmin) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Reservation not found with id: " + id));
+
+        if (!isAdmin && !reservation.getUser().getEmail().equals(email)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have permission to access this reservation");
+        }
+
+        return toResponse(reservation);
+    }
+
+    public ReservationResponse update(Long id, ReservationRequest request) {
+        if (request.getStartTime() == null || request.getEndTime() == null) {
+            throw new RuntimeException("Start time and end time are required");
+        }
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new RuntimeException("End time must be after start time");
+        }
+
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Reservation not found with id: " + id));
+
+        Resource resource = resourceRepository.findById(request.getResourceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Resource not found with id: " + request.getResourceId()));
+
+        reservation.setResource(resource);
+        reservation.setStartTime(request.getStartTime());
+        reservation.setEndTime(request.getEndTime());
+        reservation.setPrice(request.getPrice());
+
+        return toResponse(reservationRepository.save(reservation));
+    }
+
     public ReservationResponse updateStatus(Long id, ReservationStatus status) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(

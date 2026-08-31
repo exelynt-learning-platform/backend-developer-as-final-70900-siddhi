@@ -120,6 +120,8 @@ Or manually:
 | POST | `/reservations` | USER, ADMIN | Create reservation → `201 Created` |
 | GET | `/reservations` | ADMIN | All reservations (optional filters) |
 | GET | `/reservations/my` | USER, ADMIN | Own reservations (optional filters) |
+| GET | `/reservations/{id}` | USER, ADMIN | Get reservation by ID (User own / Admin all) |
+| PUT | `/reservations/{id}` | ADMIN | Update reservation details |
 | PATCH | `/reservations/{id}/status` | ADMIN | Update status |
 | DELETE | `/reservations/{id}` | ADMIN | Delete reservation → `204 No Content` |
 
