@@ -1,211 +1,197 @@
-# Resource Booking System
+# Resource Booking System - RESTful API
 
-A RESTful API built with **Spring Boot 4**, **Spring Security**, **JWT**, and **MySQL** that allows users to book resources (rooms, vehicles, equipment) with full role-based access control.
+A secure, scalable RESTful backend service for managing bookable resources (e.g., conference rooms, equipment, vehicles) and user reservations. Built with **Spring Boot 3**, **Java 17**, **Spring Security 6 (Stateless JWT)**, **Spring Data JPA / Hibernate**, and **MySQL 8**.
 
 ---
 
-## Tech Stack
+## 🚀 Tech Stack & Dependencies
 
 | Layer | Technology |
-|---|---|
-| Framework | Spring Boot 4.1.1 |
-| Language | Java 17 |
-| Security | Spring Security + JWT (jjwt 0.11.5) |
-| Database | MySQL 8.x |
-| ORM | Spring Data JPA / Hibernate 7 |
-| Docs | Springdoc OpenAPI 3.1.0 (Swagger UI) |
-| Build | Maven |
+| :--- | :--- |
+| **Language** | Java 17 (OpenJDK 17) |
+| **Framework** | Spring Boot 3.3.4 (Spring Web, Spring Security 6, Spring Data JPA, Validation) |
+| **Security & Auth** | Stateless JWT (JJWT `io.jsonwebtoken:0.12.6`), BCrypt password hashing, RBAC |
+| **Database & ORM** | MySQL 8.x, Hibernate / Spring Data JPA (JPA Criteria API / Specifications) |
+| **Test Database** | In-Memory H2 Database (MySQL compatibility mode for zero-config test execution) |
+| **API Documentation** | SpringDoc OpenAPI 3 / Swagger UI 2.6.0 |
+| **Testing** | JUnit 5, Mockito, Spring Security Test, MockMvc |
 
 ---
 
-## Prerequisites
+## 👥 Seed Test Accounts
 
-- Java 17 (required — JDK 24 has a known `management.dll` issue on Windows)
-- MySQL 8.x running locally
-- Maven (or use `mvnw`)
+The system automatically initializes default user accounts with pre-hashed BCrypt passwords upon application startup:
+
+| Role | Username | Email | Password | Access Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **ADMIN** | `admin` | `admin@example.com` | `Admin@123` | Full CRUD on resources & all reservations |
+| **USER** | `user1` | `user1@example.com` | `User@123` | Read resources, create & manage own reservations |
+| **USER** | `user2` | `user2@example.com` | `User@123` | Multi-tenant isolation testing |
 
 ---
 
-## Database Setup
+## ⚙️ Environment Variables & Configuration
 
+The application uses standard Spring configuration properties with sensible defaults and support for environment variable overrides:
+
+| Variable Name | Default Value | Description |
+| :--- | :--- | :--- |
+| `DB_HOST` | `localhost` | MySQL hostname / IP |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_NAME` | `resource_booking_db` | MySQL database name |
+| `DB_USERNAME` | `root` | MySQL username |
+| `DB_PASSWORD` | `root` | MySQL password |
+| `SERVER_PORT` | `8080` | Application HTTP server port |
+| `SEED_ADMIN_PASSWORD` | `Admin@123` | Default password for seeded `admin` account |
+| `SEED_USER_PASSWORD` | `User@123` | Default password for seeded `user1`/`user2` accounts |
+
+---
+
+## 🛠️ Getting Started & Setup Instructions
+
+### Prerequisites
+- **JDK 17+** installed and configured in `PATH`
+- **MySQL 8.0+** running locally on port `3306`
+- **Maven 3.8+** (or use the included wrapper script)
+
+### 1. Database Setup
+Ensure MySQL is running, then create the database:
 ```sql
-CREATE DATABASE booking_db;
+CREATE DATABASE IF NOT EXISTS resource_booking_db;
 ```
 
-Tables are auto-created by Hibernate (`ddl-auto=update`).
+### 2. Configure Environment (Optional)
+If your MySQL credentials differ from the defaults (`root` / `root`):
 
----
-
-## Environment Configuration
-
-Edit [`src/main/resources/application.properties`](src/main/resources/application.properties):
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/booking_db
-spring.datasource.username=root
-spring.datasource.password=YOUR_PASSWORD
-
-jwt.secret=mySecretKey123456789012345678901234567890
-jwt.expiration=86400000   # 24 hours in ms
-```
-
----
-
-## Running the Application
-
+**PowerShell (Windows):**
 ```powershell
-# Set Java 17 (Windows)
-$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
-$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-
-# Start (kills port 8080 automatically)
-.\start.ps1
+$env:DB_HOST="localhost"
+$env:DB_PORT="3306"
+$env:DB_NAME="resource_booking_db"
+$env:DB_USERNAME="your_username"
+$env:DB_PASSWORD="your_password"
 ```
 
-Or manually:
-```powershell
-.\mvnw.cmd spring-boot:run
+**Bash (Linux / macOS):**
+```bash
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_NAME=resource_booking_db
+export DB_USERNAME=your_username
+export DB_PASSWORD=your_password
 ```
 
-**Swagger UI:** http://localhost:8080/swagger-ui/index.html
+### 3. Build the Application
+```bash
+mvn clean package -DskipTests
+```
+
+### 4. Run the Application
+```bash
+mvn spring-boot:run
+```
+The application will start on `http://localhost:8080`.
 
 ---
 
-## Seed Users (Auto-created on first run)
+## 📖 API Documentation (Swagger / OpenAPI)
 
-| Role | Email | Password |
-|---|---|---|
-| ADMIN | `admin@booking.com` | `admin123` |
-| USER | `user@booking.com` | `user123` |
+Once the application is running, open your browser and navigate to:
+- **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **OpenAPI 3 JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+> **Swagger Bearer Token:** To execute secured requests in Swagger UI, click the **Authorize** button at the top right and enter: `Bearer <your_jwt_token>`.
 
 ---
 
-## API Reference
+## 🧪 Running Automated Tests
 
-### Authentication
+Run the complete test suite (25+ tests covering authentication, RBAC boundaries, reservation ownership isolation, dynamic JPA filtering, and decimal pricing):
 
+```bash
+mvn test
+```
+
+---
+
+## 📡 REST API Reference & Endpoints
+
+### 1. Authentication Endpoints (`/auth`)
 | Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/auth/register` | Public | Register new user |
-| POST | `/auth/login` | Public | Login → returns JWT token |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/login` | Public | Authenticate credentials and receive JWT Bearer token |
+| `POST` | `/auth/register` | Public | Register a new user account with `ROLE_USER` |
 
-**Login response:**
-```json
-{ "token": "eyJhbGci...", "role": "ADMIN" }
-```
+### 2. Resource Management Endpoints (`/api/resources`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/resources` | User / Admin | Paginated list of resources (optional `type`, `availableOnly`) |
+| `GET` | `/api/resources/{id}` | User / Admin | Retrieve resource details by ID |
+| `POST` | `/api/resources` | Admin Only | Create a new bookable resource |
+| `PUT` | `/api/resources/{id}` | Admin Only | Update an existing resource |
+| `DELETE` | `/api/resources/{id}` | Admin Only | Remove a resource |
 
----
-
-### Resources
-
-| Method | Endpoint | Role | Description |
-|---|---|---|---|
-| GET | `/resources` | USER, ADMIN | List all resources |
-| GET | `/resources/{id}` | USER, ADMIN | Get resource by ID |
-| POST | `/resources` | ADMIN | Create resource → `201 Created` |
-| PUT | `/resources/{id}` | ADMIN | Update resource |
-| DELETE | `/resources/{id}` | ADMIN | Delete resource → `204 No Content` |
-
-**Resource body:**
-```json
-{ "name": "Conference Room A", "type": "room", "description": "Seats 10" }
-```
+### 3. Reservation Management Endpoints (`/api/reservations`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/reservations` | User / Admin | Book a resource (Identity resolved from JWT) |
+| `GET` | `/api/reservations` | User / Admin | Filtered & paginated bookings (User: own, Admin: all) |
+| `GET` | `/api/reservations/{id}` | User / Admin | View booking by ID (User: own, Admin: all) |
+| `PATCH` | `/api/reservations/{id}/status` | User / Admin | Update status (User: CANCELLED, Admin: any) |
+| `DELETE` | `/api/reservations/{id}` | User / Admin | Cancel or remove a reservation |
 
 ---
 
-### Reservations
+## 💻 Sample cURL Requests
 
-| Method | Endpoint | Role | Description |
-|---|---|---|---|
-| POST | `/reservations` | USER, ADMIN | Create reservation → `201 Created` |
-| GET | `/reservations` | ADMIN | All reservations (optional filters) |
-| GET | `/reservations/my` | USER, ADMIN | Own reservations (optional filters) |
-| GET | `/reservations/{id}` | USER, ADMIN | Get reservation by ID (User own / Admin all) |
-| PUT | `/reservations/{id}` | ADMIN | Update reservation details |
-| PATCH | `/reservations/{id}/status` | ADMIN | Update status |
-| DELETE | `/reservations/{id}` | ADMIN | Delete reservation → `204 No Content` |
-
-**Reservation body:**
-```json
-{
-  "resourceId": 1,
-  "startTime": "2026-09-10T10:00:00",
-  "endTime": "2026-09-10T12:00:00",
-  "price": 500.00
-}
+### 1. Login (Admin)
+```bash
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "usernameOrEmail": "admin@example.com",
+    "password": "Admin@123"
+  }'
 ```
 
-**Filtering & Pagination:**
-```
-GET /reservations?status=PENDING&minPrice=100&maxPrice=1000&page=0&size=10&sort=price,asc
-GET /reservations/my?status=CONFIRMED&page=0&size=5
-```
-
-All filter params are optional. Sorting supports any field (e.g., `price`, `startTime`, `status`).
-
-**Reservation statuses:** `PENDING` | `CONFIRMED` | `CANCELLED`
-
----
-
-## Authentication Flow
-
-1. Call `POST /auth/login` with email + password
-2. Copy the `token` from the response
-3. Send `Authorization: Bearer <token>` header with all protected requests
-
-In Swagger UI: click **🔒 Authorize** → paste token → click **Authorize**
-
----
-
-## Error Responses
-
-All errors return structured JSON:
-```json
-{
-  "status": 404,
-  "error": "Not Found",
-  "message": "Resource not found with id: 99",
-  "timestamp": "2026-08-29T15:30:00"
-}
+### 2. Create Resource (Admin Only)
+```bash
+curl -X POST http://localhost:8080/api/resources \
+  -H "Authorization: Bearer <ADMIN_JWT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Grand Conference Room A",
+    "description": "20-person conference room with 4K projector and AV system",
+    "type": "CONFERENCE_HALL",
+    "pricePerHour": 150.00,
+    "isAvailable": true
+  }'
 ```
 
-| HTTP Code | Meaning |
-|---|---|
-| 400 | Validation error / bad request |
-| 401 | Missing or invalid JWT token |
-| 403 | Insufficient role permissions |
-| 404 | Resource / Reservation not found |
-
----
-
-## Running Tests
-
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
-$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-.\mvnw.cmd test
+### 3. Create Reservation (User)
+```bash
+curl -X POST http://localhost:8080/api/reservations \
+  -H "Authorization: Bearer <USER_JWT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resourceId": 1,
+    "startTime": "2026-09-10T10:00:00",
+    "endTime": "2026-09-10T13:00:00"
+  }'
 ```
 
-Test coverage:
-- `AuthServiceTest` — login, register, duplicate email
-- `ResourceServiceTest` — getAll, getById (not found), create
-- `ReservationServiceTest` — create, time validation, filter, updateStatus, delete
-- `SecurityIntegrationTest` — 401 without auth, 403 USER on ADMIN endpoints, 200/204 ADMIN access
-
----
-
-## Project Structure
-
+### 4. Filter & Paginate Reservations
+```bash
+curl -X GET "http://localhost:8080/api/reservations?status=CONFIRMED&minPrice=100.00&maxPrice=500.00&page=0&size=10&sortBy=totalPrice&sortDirection=DESC" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
 ```
-src/main/java/com/example/booking/
-├── config/          # SecurityConfig, OpenApiConfig
-├── controller/      # AuthController, ResourceController, ReservationController
-├── dto/             # LoginRequest/Response, RegisterRequest, ResourceRequest
-│                      ReservationRequest, ReservationResponse
-├── entity/          # User, Resource, Reservation
-├── enums/           # Role (ADMIN, USER), ReservationStatus (PENDING, CONFIRMED, CANCELLED)
-├── exception/       # ResourceNotFoundException, ErrorResponse, GlobalExceptionHandler
-├── repository/      # UserRepository, ResourceRepository, ReservationRepository
-├── security/        # JwtUtil, JwtFilter, UserDetailsServiceImpl
-└── service/         # AuthService, ResourceService, ReservationService
+
+### 5. Cancel Reservation (User)
+```bash
+curl -X PATCH http://localhost:8080/api/reservations/1/status \
+  -H "Authorization: Bearer <USER_JWT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "CANCELLED"
+  }'
 ```
