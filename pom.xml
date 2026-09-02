@@ -133,14 +133,13 @@
                 </configuration>
             </plugin>
 
-            <!-- Surefire 3.5.2: force forked JVM to use JDK 17 (JDK 24 is missing instrument.dll) -->
+            <!-- Surefire 3.5.2: cross-platform test runner with JaCoCo agent support -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
                 <configuration>
-                    <jvm>D:\jdk17\bin\java.exe</jvm>
-                    <argLine>${argLine} -Djdk.net.URLClassPath.disableClassPathURLCheck=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED</argLine>
+                    <argLine>${argLine} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED</argLine>
                     <systemPropertyVariables>
                         <spring.profiles.active>test</spring.profiles.active>
                     </systemPropertyVariables>
