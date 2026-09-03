@@ -1,20 +1,77 @@
 package com.multigenesys.booking.service;
 
-import com.multigenesys.booking.dto.request.ResourceRequest;
-import com.multigenesys.booking.dto.response.ResourceResponse;
-import com.multigenesys.booking.entity.ResourceType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
-public interface ResourceService {
+import org.springframework.stereotype.Service;
 
-    ResourceResponse createResource(ResourceRequest request);
+import com.multigenesys.booking.dto.ResourceRequest;
+import com.multigenesys.booking.entity.Resource;
+import com.multigenesys.booking.exception.ResourceNotFoundException;
+import com.multigenesys.booking.repository.ResourceRepository;
 
-    ResourceResponse updateResource(Long id, ResourceRequest request);
+import java.util.List;
 
-    ResourceResponse getResourceById(Long id);
+@Service
+public class ResourceService {
 
-    Page<ResourceResponse> getAllResources(ResourceType type, Boolean availableOnly, Pageable pageable);
+    private final ResourceRepository resourceRepository;
 
-    void deleteResource(Long id);
+    public ResourceService(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
+    }
+
+    public List<Resource> getAllResources() {
+        return resourceRepository.findAll();
+    }
+
+    public List<Resource> getAvailableResources() {
+        return resourceRepository.findAll()
+                .stream()
+                .filter(Resource::getAvailable)
+                .toList();
+    }
+
+    public Resource getResourceById(Long id) {
+        return resourceRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource not found with id: " + id
+                        )
+                );
+    }
+
+    public Resource createResource(ResourceRequest request) {
+
+        Resource resource = new Resource();
+
+        resource.setName(request.getName());
+        resource.setDescription(request.getDescription());
+        resource.setAvailable(
+                request.getAvailable() == null
+                        ? true
+                        : request.getAvailable()
+        );
+
+        return resourceRepository.save(resource);
+    }
+
+    public Resource updateResource(Long id, ResourceRequest request) {
+
+        Resource resource = getResourceById(id);
+
+        resource.setName(request.getName());
+        resource.setDescription(request.getDescription());
+
+        if (request.getAvailable() != null) {
+            resource.setAvailable(request.getAvailable());
+        }
+
+        return resourceRepository.save(resource);
+    }
+
+    public void deleteResource(Long id) {
+
+        Resource resource = getResourceById(id);
+
+        resourceRepository.delete(resource);
+    }
 }
